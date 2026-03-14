@@ -156,3 +156,9 @@ To run in CI:
 - Focus on verifying key skill requirements
 - Tests should be deterministic
 - Avoid testing implementation details
+
+### Run Python unit tests
+Some of the helper scripts have Python unit tests that run independently of the Claude CLI:
+```bash
+python3 -m unittest tests/claude-code/test_analyze_token_usage.py
+```
