@@ -37,6 +37,7 @@
     document.querySelectorAll('[data-choice]').forEach(el => {
       if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
       if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
+      if (!el.hasAttribute('aria-pressed')) el.setAttribute('aria-pressed', el.classList.contains('selected') ? 'true' : 'false');
     });
   }
 
@@ -60,6 +61,8 @@
   document.addEventListener('click', (e) => {
     const target = e.target.closest('[data-choice]');
     if (!target) return;
+
+    window.toggleSelect(target);
 
     sendEvent({
       type: 'click',
@@ -99,6 +102,15 @@
     } else {
       el.classList.add('selected');
     }
+
+    if (container) {
+      container.querySelectorAll('.option, .card').forEach(o => {
+        o.setAttribute('aria-pressed', o.classList.contains('selected') ? 'true' : 'false');
+      });
+    } else {
+      el.setAttribute('aria-pressed', el.classList.contains('selected') ? 'true' : 'false');
+    }
+
     window.selectedChoice = el.dataset.choice;
   };
 
