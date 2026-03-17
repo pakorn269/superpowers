@@ -222,11 +222,20 @@ async function handleRequest(req, res) {
 
 const clients = new Set();
 
+const MAX_WS_PAYLOAD = 10 * 1024 * 1024; // 10MB limit to prevent Unbounded Buffer DoS
+
 function setupSocketCommunication(socket) {
   let buffer = Buffer.alloc(0);
   clients.add(socket);
 
   socket.on('data', (chunk) => {
+    // SECURITY: Prevent memory exhaustion from oversized payloads or slowloris attacks
+    if (buffer.length + chunk.length > MAX_WS_PAYLOAD) {
+      socket.destroy();
+      clients.delete(socket);
+      return;
+    }
+
     buffer = Buffer.concat([buffer, chunk]);
     while (buffer.length > 0) {
       let result;
