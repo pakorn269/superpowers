@@ -115,7 +115,13 @@ function isFullDocument(html) {
 }
 
 function wrapInFrame(content) {
-  return frameTemplate.replace('<!-- CONTENT -->', () => content);
+  // Optimize: avoid String.prototype.replace() for huge multimegabyte strings
+  const target = '<!-- CONTENT -->';
+  const idx = frameTemplate.indexOf(target);
+  if (idx !== -1) {
+    return frameTemplate.slice(0, idx) + content + frameTemplate.slice(idx + target.length);
+  }
+  return frameTemplate;
 }
 
 let cachedNewestScreen = undefined;
@@ -171,8 +177,10 @@ async function handleRequest(req, res) {
         html = WAITING_PAGE;
       }
 
-      if (html.includes('</body>')) {
-        html = html.replace('</body>', () => helperInjection + '\n</body>');
+      // Optimize: avoid String.prototype.replace() for huge multimegabyte strings
+      const bodyIdx = html.lastIndexOf('</body>');
+      if (bodyIdx !== -1) {
+        html = html.slice(0, bodyIdx) + helperInjection + '\n</body>' + html.slice(bodyIdx + 7);
       } else {
         html += helperInjection;
       }
