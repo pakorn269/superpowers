@@ -7,6 +7,7 @@ const path = require('path');
 
 const OPCODES = { TEXT: 0x01, CLOSE: 0x08, PING: 0x09, PONG: 0x0A };
 const WS_MAGIC = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
+const MAX_PAYLOAD_SIZE = 10 * 1024 * 1024; // 10MB limit
 
 function computeAcceptKey(clientKey) {
   if (typeof clientKey !== 'string' || !clientKey) {
@@ -60,6 +61,10 @@ function decodeFrame(buffer) {
     if (buffer.length < 10) return null;
     payloadLen = Number(buffer.readBigUInt64BE(2));
     offset = 10;
+  }
+
+  if (payloadLen > MAX_PAYLOAD_SIZE) {
+    throw new Error('Payload size exceeds maximum allowed (10MB)');
   }
 
   const maskOffset = offset;
@@ -228,6 +233,7 @@ function setupSocketCommunication(socket) {
 
   socket.on('data', (chunk) => {
     buffer = Buffer.concat([buffer, chunk]);
+
     while (buffer.length > 0) {
       let result;
       try {
@@ -261,6 +267,13 @@ function setupSocketCommunication(socket) {
           return;
         }
       }
+    }
+
+    // Prevent unbounded memory exhaustion from incomplete frames
+    if (buffer.length > MAX_PAYLOAD_SIZE + 14) { // +14 for max header size
+      socket.end(encodeFrame(OPCODES.CLOSE, Buffer.alloc(0)));
+      clients.delete(socket);
+      return;
     }
   });
 
