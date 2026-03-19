@@ -37,6 +37,7 @@
     document.querySelectorAll('[data-choice]').forEach(el => {
       if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
       if (!el.hasAttribute('role')) el.setAttribute('role', 'button');
+      if (!el.hasAttribute('aria-pressed')) el.setAttribute('aria-pressed', el.classList.contains('selected') ? 'true' : 'false');
     });
   }
 
@@ -92,12 +93,17 @@
     const container = el.closest('.options') || el.closest('.cards');
     const multi = container && container.dataset.multiselect !== undefined;
     if (container && !multi) {
-      container.querySelectorAll('.option, .card').forEach(o => o.classList.remove('selected'));
+      container.querySelectorAll('.option, .card').forEach(o => {
+        o.classList.remove('selected');
+        o.setAttribute('aria-pressed', 'false');
+      });
     }
     if (multi) {
       el.classList.toggle('selected');
+      el.setAttribute('aria-pressed', el.classList.contains('selected') ? 'true' : 'false');
     } else {
       el.classList.add('selected');
+      el.setAttribute('aria-pressed', 'true');
     }
     window.selectedChoice = el.dataset.choice;
   };
