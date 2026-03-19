@@ -171,8 +171,12 @@ async function handleRequest(req, res) {
         html = WAITING_PAGE;
       }
 
-      if (html.includes('</body>')) {
-        html = html.replace('</body>', () => helperInjection + '\n</body>');
+      // Optimize: Avoid String.prototype.replace() for huge HTML payloads.
+      // Searching backwards and using string slice() avoids a huge performance
+      // overhead for large strings compared to regex-based or replace() functions.
+      const closingBodyIdx = html.lastIndexOf('</body>');
+      if (closingBodyIdx !== -1) {
+        html = html.slice(0, closingBodyIdx) + helperInjection + '\n' + html.slice(closingBodyIdx);
       } else {
         html += helperInjection;
       }
