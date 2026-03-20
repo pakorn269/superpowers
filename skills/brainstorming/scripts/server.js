@@ -262,6 +262,15 @@ function setupSocketCommunication(socket) {
         }
       }
     }
+
+    // Security: Prevent unbounded buffer memory exhaustion (DoS)
+    const MAX_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB
+    if (buffer.length > MAX_BUFFER_SIZE) {
+      console.error('WebSocket buffer size exceeded limit. Closing connection.');
+      socket.destroy();
+      clients.delete(socket);
+      return;
+    }
   });
 
   socket.on('close', () => clients.delete(socket));
