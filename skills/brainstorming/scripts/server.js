@@ -221,6 +221,7 @@ async function handleRequest(req, res) {
 // ========== WebSocket Connection Handling ==========
 
 const clients = new Set();
+const MAX_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB limit to prevent memory exhaustion DoS
 
 function setupSocketCommunication(socket) {
   let buffer = Buffer.alloc(0);
@@ -261,6 +262,13 @@ function setupSocketCommunication(socket) {
           return;
         }
       }
+    }
+
+    // Enforce max buffer size after processing valid frames
+    if (buffer.length > MAX_BUFFER_SIZE) {
+      console.error('WebSocket buffer size exceeded. Destroying connection.');
+      socket.destroy();
+      clients.delete(socket);
     }
   });
 
