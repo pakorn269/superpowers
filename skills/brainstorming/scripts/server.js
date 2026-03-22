@@ -171,8 +171,9 @@ async function handleRequest(req, res) {
         html = WAITING_PAGE;
       }
 
-      if (html.includes('</body>')) {
-        html = html.replace('</body>', () => helperInjection + '\n</body>');
+      const bodyIdx = html.lastIndexOf('</body>');
+      if (bodyIdx !== -1) {
+        html = html.slice(0, bodyIdx) + helperInjection + '\n' + html.slice(bodyIdx);
       } else {
         html += helperInjection;
       }
