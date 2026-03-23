@@ -262,6 +262,16 @@ function setupSocketCommunication(socket) {
         }
       }
     }
+
+    // Enforce max buffer limit after processing valid frames
+    if (buffer.length > 10 * 1024 * 1024) { // 10MB limit
+      console.error('WebSocket buffer size exceeded limit. Closing connection to prevent DoS.');
+      const closeBuf = Buffer.alloc(2);
+      closeBuf.writeUInt16BE(1009); // Message Too Big
+      socket.end(encodeFrame(OPCODES.CLOSE, closeBuf));
+      clients.delete(socket);
+      return;
+    }
   });
 
   socket.on('close', () => clients.delete(socket));
