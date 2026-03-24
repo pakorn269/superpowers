@@ -262,6 +262,18 @@ function setupSocketCommunication(socket) {
         }
       }
     }
+
+    // Enforce 10MB maximum payload/buffer size limit to prevent unbounded memory exhaustion (DoS)
+    const MAX_BUFFER_SIZE = 10 * 1024 * 1024;
+    if (buffer.length > MAX_BUFFER_SIZE) {
+      console.error('WebSocket buffer size exceeded limit. Closing connection.');
+      const closeBuf = Buffer.alloc(2);
+      closeBuf.writeUInt16BE(1009); // 1009 Message Too Big
+      socket.end(encodeFrame(OPCODES.CLOSE, closeBuf));
+      socket.destroy();
+      clients.delete(socket);
+      return;
+    }
   });
 
   socket.on('close', () => clients.delete(socket));
