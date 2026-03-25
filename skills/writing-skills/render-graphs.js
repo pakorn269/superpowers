@@ -15,11 +15,11 @@
 
 const fs = require('fs');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { execSync } = require('child_process');
 
 function extractDotBlocks(markdown) {
   const blocks = [];
-  const regex = /```dot\r?\n([\s\S]*?)```/g;
+  const regex = /```dot\n([\s\S]*?)```/g;
   let match;
 
   while ((match = regex.exec(markdown)) !== null) {
@@ -37,13 +37,10 @@ function extractDotBlocks(markdown) {
 
 function extractGraphBody(dotContent) {
   // Extract just the body (nodes and edges) from a digraph
-  // Using a more robust match that finds the outermost braces
-  const start = dotContent.indexOf('{');
-  const end = dotContent.lastIndexOf('}');
+  const match = dotContent.match(/digraph\s+\w+\s*\{([\s\S]*)\}/);
+  if (!match) return '';
 
-  if (start === -1 || end === -1 || end <= start) return '';
-
-  let body = dotContent.substring(start + 1, end);
+  let body = match[1];
 
   // Remove rankdir (we'll set it once at the top level)
   body = body.replace(/^\s*rankdir\s*=\s*\w+\s*;?\s*$/gm, '');
@@ -72,26 +69,14 @@ ${bodies.join('\n\n')}
 
 function renderToSvg(dotContent) {
   try {
-    const result = spawnSync('dot', ['-Tsvg'], {
+    return execSync('dot -Tsvg', {
       input: dotContent,
       encoding: 'utf-8',
       maxBuffer: 10 * 1024 * 1024
     });
-
-    if (result.error) {
-      console.error('Error running dot:', result.error.message);
-      return null;
-    }
-
-    if (result.status !== 0) {
-      console.error('Error running dot: process exited with status', result.status);
-      if (result.stderr) console.error(result.stderr);
-      return null;
-    }
-
-    return result.stdout;
   } catch (err) {
-    console.error('Unexpected error running dot:', err.message);
+    console.error('Error running dot:', err.message);
+    if (err.stderr) console.error(err.stderr.toString());
     return null;
   }
 }
@@ -123,8 +108,9 @@ function main() {
   }
 
   // Check if dot is available
-  const dotCheck = spawnSync('dot', ['-V']);
-  if (dotCheck.error) {
+  try {
+    execSync('which dot', { encoding: 'utf-8' });
+  } catch {
     console.error('Error: graphviz (dot) not found. Install with:');
     console.error('  brew install graphviz    # macOS');
     console.error('  apt install graphviz     # Linux');
@@ -179,13 +165,4 @@ function main() {
   console.log(`\nOutput: ${outputDir}/`);
 }
 
-if (require.main === module) {
-  main();
-}
-
-module.exports = {
-  extractDotBlocks,
-  extractGraphBody,
-  combineGraphs,
-  renderToSvg
-};
+main();

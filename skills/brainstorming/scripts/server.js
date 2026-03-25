@@ -108,7 +108,7 @@ function isFullDocument(html) {
 }
 
 function wrapInFrame(content) {
-  return frameTemplate.replace('<!-- CONTENT -->', () => content);
+  return frameTemplate.replace('<!-- CONTENT -->', content);
 }
 
 async function getNewestScreen() {
@@ -193,7 +193,18 @@ async function handleRequest(req, res) {
 
 const clients = new Set();
 
-function setupSocketCommunication(socket) {
+function handleUpgrade(req, socket) {
+  const key = req.headers['sec-websocket-key'];
+  if (!key) { socket.destroy(); return; }
+
+  const accept = computeAcceptKey(key);
+  socket.write(
+    'HTTP/1.1 101 Switching Protocols\r\n' +
+    'Upgrade: websocket\r\n' +
+    'Connection: Upgrade\r\n' +
+    'Sec-WebSocket-Accept: ' + accept + '\r\n\r\n'
+  );
+
   let buffer = Buffer.alloc(0);
   clients.add(socket);
 
@@ -237,21 +248,6 @@ function setupSocketCommunication(socket) {
 
   socket.on('close', () => clients.delete(socket));
   socket.on('error', () => clients.delete(socket));
-}
-
-function handleUpgrade(req, socket) {
-  const key = req.headers['sec-websocket-key'];
-  if (!key) { socket.destroy(); return; }
-
-  const accept = computeAcceptKey(key);
-  socket.write(
-    'HTTP/1.1 101 Switching Protocols\r\n' +
-    'Upgrade: websocket\r\n' +
-    'Connection: Upgrade\r\n' +
-    'Sec-WebSocket-Accept: ' + accept + '\r\n\r\n'
-  );
-
-  setupSocketCommunication(socket);
 }
 
 function handleMessage(text) {
@@ -370,4 +366,4 @@ if (require.main === module) {
   startServer();
 }
 
-module.exports = { computeAcceptKey, encodeFrame, decodeFrame, OPCODES, wrapInFrame, isFullDocument };
+module.exports = { computeAcceptKey, encodeFrame, decodeFrame, OPCODES };
