@@ -73,7 +73,7 @@ function decodeFrame(buffer) {
 
 // ========== Configuration ==========
 
-const PORT = process.env.BRAINSTORM_PORT || (49152 + Math.floor(Math.random() * 16383));
+const PORT = process.env.BRAINSTORM_PORT || crypto.randomInt(49152, 65536);
 const HOST = process.env.BRAINSTORM_HOST || '127.0.0.1';
 const URL_HOST = process.env.BRAINSTORM_URL_HOST || (HOST === '127.0.0.1' ? 'localhost' : HOST);
 const SCREEN_DIR = process.env.BRAINSTORM_DIR || '/tmp/brainstorm';
@@ -240,6 +240,21 @@ function setupSocketCommunication(socket) {
 }
 
 function handleUpgrade(req, socket) {
+  const origin = req.headers.origin;
+  if (origin) {
+    try {
+      const originUrl = new URL(origin);
+      if (originUrl.hostname !== 'localhost' && originUrl.hostname !== '127.0.0.1' && originUrl.hostname !== HOST) {
+        socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+        socket.destroy();
+        return;
+      }
+    } catch (e) {
+      socket.destroy();
+      return;
+    }
+  }
+
   const key = req.headers['sec-websocket-key'];
   if (!key) { socket.destroy(); return; }
 
@@ -263,7 +278,7 @@ function handleMessage(text) {
     return;
   }
   touchActivity();
-  console.log(JSON.stringify({ source: 'user-event', ...event }));
+  console.log(JSON.stringify({ ...event, source: 'user-event' }));
   if (event.choice) {
     const eventsFile = path.join(SCREEN_DIR, '.events');
     fs.appendFileSync(eventsFile, JSON.stringify(event) + '\n');
