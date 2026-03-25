@@ -83,6 +83,7 @@ const HOST = process.env.BRAINSTORM_HOST || '127.0.0.1';
 const URL_HOST = process.env.BRAINSTORM_URL_HOST || (HOST === '127.0.0.1' ? 'localhost' : HOST);
 const SCREEN_DIR = process.env.BRAINSTORM_DIR || '/tmp/brainstorm';
 const OWNER_PID = process.env.BRAINSTORM_OWNER_PID ? Number(process.env.BRAINSTORM_OWNER_PID) : null;
+const MAX_PAYLOAD = 10 * 1024 * 1024; // 10MB limit to prevent unbounded memory exhaustion
 
 const MIME_TYPES = {
   '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript',
@@ -228,6 +229,11 @@ function setupSocketCommunication(socket) {
 
   socket.on('data', (chunk) => {
     buffer = Buffer.concat([buffer, chunk]);
+    if (buffer.length > MAX_PAYLOAD) {
+      console.error('WebSocket payload exceeded maximum size (10MB)');
+      socket.destroy();
+      return;
+    }
     while (buffer.length > 0) {
       let result;
       try {
