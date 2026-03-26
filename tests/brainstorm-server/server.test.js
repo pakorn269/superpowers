@@ -170,6 +170,23 @@ async function runTests() {
       assert.strictEqual(res.status, 404);
     });
 
+    await test('rejects request with disallowed Host header (DNS rebinding)', async () => {
+      const res = await new Promise((resolve, reject) => {
+        http.get({
+          hostname: '127.0.0.1',
+          port: TEST_PORT,
+          path: '/',
+          headers: { Host: 'attacker.com' }
+        }, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => resolve({ status: res.statusCode, body: data }));
+        }).on('error', reject);
+      });
+      assert.strictEqual(res.status, 403, 'Should reject with 403 Forbidden');
+      assert(res.body.includes('Forbidden'), 'Response should indicate Forbidden');
+    });
+
     // ========== WebSocket Communication ==========
     console.log('\n--- WebSocket Communication ---');
 

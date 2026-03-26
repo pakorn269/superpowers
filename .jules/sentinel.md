@@ -17,3 +17,8 @@
 **Vulnerability:** The brainstorm server used `Math.random()` to dynamically select a port for binding. Because `Math.random()` is predictable, an attacker running malicious JavaScript in a background tab or another application could guess the assigned port and attempt cross-site attacks before the owner interacts.
 **Learning:** Avoid `Math.random()` for any security-sensitive logic like local port assignment, token generation, or IDs.
 **Prevention:** Always use `crypto.randomInt(min, max)` for cryptographically secure integer generation.
+
+## 2026-03-26 - [DNS Rebinding via Missing Host Validation]
+**Vulnerability:** The brainstorm server HTTP handler did not validate the `Host` header, making it vulnerable to DNS rebinding. An attacker could use a malicious site to resolve a domain to `127.0.0.1` and issue HTTP requests, tricking the local server into serving content because it responded to any `Host` header.
+**Learning:** For local servers, enforcing the `Host` header is a critical defense against Server-Side Request Forgery and DNS rebinding attacks from browsers.
+**Prevention:** Always parse and validate `req.headers.host` against allowed hostnames (e.g. `localhost`, `127.0.0.1`, or configured custom `HOST`) at the top of the HTTP request handler, returning `403 Forbidden` if validation fails.

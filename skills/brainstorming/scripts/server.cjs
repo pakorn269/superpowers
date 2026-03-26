@@ -181,6 +181,16 @@ async function getNewestScreen() {
 
 async function handleRequest(req, res) {
   touchActivity();
+
+  // Validate Host header to prevent DNS rebinding attacks
+  const hostHeader = req.headers.host || '';
+  const hostName = hostHeader.split(':')[0];
+  if (hostName !== 'localhost' && hostName !== '127.0.0.1' && hostName !== HOST) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Forbidden: Invalid Host header');
+    return;
+  }
+
   try {
     if (req.method === 'GET' && req.url === '/') {
       const screenFile = await getNewestScreen();
