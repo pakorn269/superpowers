@@ -21,3 +21,7 @@
 ## 2026-03-26 - Avoid full-string regex matches in large files
 **Learning:** Using a regular expression like `/^---\n([\s\S]*?)\n---\n([\s\S]*)$/` to extract frontmatter from potentially large markdown files causes massive string allocation and high regex engine execution overhead because it captures the entire file body.
 **Action:** When extracting short chunks from the beginning of large files, use string primitives like `indexOf` and `slice` instead of regular expressions that match the entire remaining content.
+
+## 2026-03-28 - Async directory read in HTTP handler
+**Learning:** `fs.readdirSync` blocks the event loop in Node.js, making the server unresponsive during the file read, which is especially problematic in an HTTP request handler (`handleRequest`).
+**Action:** Use asynchronous filesystem operations (`fs.promises.*`) in server contexts (like HTTP handlers) to maintain event-loop responsiveness, but use sequential processing (e.g. `for...of` loops) instead of `Promise.all` for large directories to avoid `EMFILE` errors.
