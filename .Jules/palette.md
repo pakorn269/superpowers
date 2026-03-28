@@ -9,3 +9,7 @@
 ## 2026-03-26 - Semantic Landmarks in LLM Template UIs
 **Learning:** LLM agents often output UI fragments using generic `div` containers and rarely generate full pages with complete semantic landmarks (`header`, `main`, `footer`). This makes navigation difficult for screen reader users as they can't jump efficiently between content sections.
 **Action:** When creating container templates or wrappers for LLM-generated UI (such as `frame-template.html`), ensure the wrapper explicitly establishes the core semantic landmarks (e.g., `<main>`, `<header>`). Additionally, for async loading states, combine `<main>` with `aria-live="polite"` and `aria-busy="true"` so screen readers correctly identify the loading state of the primary content area.
+
+## 2026-04-14 - Baseline Keyboard Accessibility in LLM UIs
+**Learning:** LLM subagents consistently fail to provide correct global keyboard accessibility markers (like skip links, and `focus-visible` styles) across generated UI fragments. These omissions are tedious and error-prone to manually correct each time.
+**Action:** Provide global baseline accessibility guarantees inside wrapper templates (e.g., `frame-template.html`) by injecting a "Skip to content" link and global CSS `:focus-visible` styles for standard interactive elements (`a`, `button`, `[tabindex="0"]`). This ensures minimum keyboard accessibility requirements are met regardless of the LLM's generated output.
