@@ -228,6 +228,20 @@ async function runTests() {
       ws.close();
     });
 
+    await test('prevents source field spoofing', async () => {
+      stdoutAccum = '';
+      const ws = new WebSocket(`ws://localhost:${TEST_PORT}`);
+      await new Promise(resolve => ws.on('open', resolve));
+
+      ws.send(JSON.stringify({ type: 'click', source: 'admin', text: 'Spoofed Button' }));
+      await sleep(300);
+
+      assert(stdoutAccum.includes('"source":"user-event"'), 'Should override spoofed source');
+      assert(!stdoutAccum.includes('"source":"admin"'), 'Should NOT contain spoofed source');
+      assert(stdoutAccum.includes('Spoofed Button'), 'Should include event data');
+      ws.close();
+    });
+
     await test('writes choice events to state/events', async () => {
       // Clean up events from prior tests
       const eventsFile = path.join(STATE_DIR, 'events');
