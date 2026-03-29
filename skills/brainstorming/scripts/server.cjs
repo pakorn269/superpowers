@@ -388,15 +388,16 @@ const debounceTimers = new Map();
 
 // ========== Server Startup ==========
 
-function startServer() {
-  if (!fs.existsSync(CONTENT_DIR)) fs.mkdirSync(CONTENT_DIR, { recursive: true });
-  if (!fs.existsSync(STATE_DIR)) fs.mkdirSync(STATE_DIR, { recursive: true });
+// ⚡ Bolt: Optimize server startup by using async I/O instead of blocking sync operations
+async function startServer() {
+  await fs.promises.mkdir(CONTENT_DIR, { recursive: true });
+  await fs.promises.mkdir(STATE_DIR, { recursive: true });
 
   // Track known files to distinguish new screens from updates.
   // macOS fs.watch reports 'rename' for both new files and overwrites,
   // so we can't rely on eventType alone.
   const knownFiles = new Set(
-    fs.readdirSync(CONTENT_DIR).filter(f => f.endsWith('.html'))
+    (await fs.promises.readdir(CONTENT_DIR)).filter(f => f.endsWith('.html'))
   );
 
   const server = http.createServer(handleRequest);
