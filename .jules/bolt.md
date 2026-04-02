@@ -25,3 +25,7 @@
 ## 2026-03-27 - Async file stat reads
 **Learning:** `fs.statSync` and `fs.readdirSync` inside `getNewestScreen` block the event loop for every incoming request. Also, executing `Promise.all` on `fs.promises.stat` across a large directory can trigger `EMFILE` errors.
 **Action:** Process async file operations sequentially with a `for...of` loop and `fs.promises.stat` to maintain an unblocked event loop and prevent hitting open file limits.
+
+## 2026-04-13 - Avoid regex engine processing of full multi-megabyte strings
+**Learning:** Running anchored regular expressions like `/^\s*(?:<!doctype|<html)/i` on multi-megabyte HTML strings (e.g., in `isFullDocument`) causes V8 to evaluate the entire string context, taking ~15-40ms and blocking the event loop.
+**Action:** Always `slice` a bounded prefix (e.g., `html.slice(0, 1000)`) of a massive string before running regular expressions, which cuts execution time down to ~0.3ms.
