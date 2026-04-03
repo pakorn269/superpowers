@@ -127,8 +127,8 @@ const helperInjection = '<script>\n' + helperScript + '\n</script>';
 
 function isFullDocument(html) {
   // Optimize: avoid full-string allocation from trimStart() on large files
-  // by using a bounded regex check for the prefix.
-  return /^\s*(?:<!doctype|<html)/i.test(html);
+  // and V8 full-string regex evaluation overhead by slicing a bounded prefix first
+  return /^\s*(?:<!doctype|<html)/i.test(html.slice(0, 1000));
 }
 
 // Optimize: Precalculate frame template splits to avoid searching on every request
