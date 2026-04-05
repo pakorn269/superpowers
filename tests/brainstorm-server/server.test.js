@@ -314,6 +314,23 @@ async function runTests() {
       ws.close();
     });
 
+    await test('handles non-object JSON from client gracefully', async () => {
+      const ws = new WebSocket(`ws://localhost:${TEST_PORT}`);
+      await new Promise(resolve => ws.on('open', resolve));
+
+      // Send non-object JSON — server should not crash
+      ws.send('null');
+      ws.send('["array"]');
+      ws.send('"string"');
+      ws.send('123');
+      await sleep(300);
+
+      // Verify server is still responsive
+      const res = await fetch(`http://localhost:${TEST_PORT}/`);
+      assert.strictEqual(res.status, 200, 'Server should still be running');
+      ws.close();
+    });
+
     // ========== File Watching ==========
     console.log('\n--- File Watching ---');
 

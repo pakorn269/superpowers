@@ -362,6 +362,7 @@ function handleMessage(text) {
     console.error('Failed to parse WebSocket message:', e.message);
     return;
   }
+  if (!event || typeof event !== 'object' || Array.isArray(event)) return;
   touchActivity();
   console.log(JSON.stringify({ ...event, source: 'user-event' }));
   if (event.choice) {
