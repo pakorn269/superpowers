@@ -13,3 +13,7 @@
 ## 2026-03-30 - Baseline Accessibility in Generated HTML
 **Learning:** When providing HTML templates for LLM-generated UI (e.g., `frame-template.html`), ensure baseline keyboard accessibility by including a 'Skip to content' link (with `tabindex="-1"` on its target container for programmatic focus) and global `:focus-visible` styles for common interactive elements (`a`, `button`, `[tabindex="0"]`).
 **Action:** Automatically inject 'Skip to content' and focus-visible utilities so keyboard and screen-reader users have a consistent baseline, regardless of how perfectly the LLM structures the page content.
+
+## 2024-05-15 - WebSocket Connection State Feedback
+**Learning:** When handling WebSocket disconnection events (`ws.onclose`) that include an automatic reconnect attempt (e.g., via `setTimeout`), the UI should transition to a 'connecting' or 'reconnecting' state. Displaying an alarming 'disconnected' state provides inaccurate user feedback and creates unnecessary friction.
+**Action:** Always verify if a reconnection attempt follows a disconnection event, and explicitly communicate the reconnecting state to the user.
