@@ -306,6 +306,14 @@ async function runTests() {
 
       // Send invalid JSON — server should not crash
       ws.send('not json at all {{{');
+      await sleep(100);
+
+      // Send valid JSON but wrong type (null)
+      ws.send('null');
+      await sleep(100);
+
+      // Send valid JSON but wrong type (array)
+      ws.send('[1, 2, 3]');
       await sleep(300);
 
       // Verify server is still responsive

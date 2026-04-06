@@ -362,6 +362,14 @@ function handleMessage(text) {
     console.error('Failed to parse WebSocket message:', e.message);
     return;
   }
+
+  // Sentinel: explicitly validate parsed JSON to prevent DoS crashes
+  // JSON.parse can return null or arrays which throw TypeErrors on property access
+  if (!event || typeof event !== 'object' || Array.isArray(event)) {
+    console.error('WebSocket message must be a JSON object');
+    return;
+  }
+
   touchActivity();
   console.log(JSON.stringify({ ...event, source: 'user-event' }));
   if (event.choice) {

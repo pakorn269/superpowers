@@ -26,3 +26,8 @@
 **Vulnerability:** The brainstorm server merged untrusted WebSocket events with trusted properties using `{ source: 'user-event', ...event }`. This allowed an attacker to spoof the `source` property by including it in the `event` payload, overriding the trusted value.
 **Learning:** When merging untrusted input objects with trusted overrides, the trusted properties must be placed after the spread operator to prevent spoofing by the incoming object payload.
 **Prevention:** Always place trusted properties after the spread operator (e.g., `{ ...event, source: 'user-event' }`) when creating merged objects.
+
+## 2026-04-06 - [CRITICAL] Prevent JSON.parse DoS crashes
+**Vulnerability:** Denial of Service (DoS) vulnerability in the Brainstorm server WebSocket handling.
+**Learning:** `JSON.parse()` can return `null` or arrays for payloads like `"null"` or `"[1, 2, 3]"`. Accessing properties like `event.choice` directly on these return values throws a `TypeError` and crashes the Node.js event loop/server.
+**Prevention:** Always explicitly validate parsed objects: `if (!event || typeof event !== 'object' || Array.isArray(event))`.
