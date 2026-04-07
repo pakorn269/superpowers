@@ -1,0 +1,6 @@
+🎨 Palette: Add accessible loading state to brainstorm waiting page
+
+💡 What: Added an accessible loading state with an animated spinner, centered flexbox layout, and dark mode support to the `WAITING_PAGE` in the brainstorm server.
+🎯 Why: The brainstorm server's waiting page previously showed plain text ("Waiting for the agent to push a screen...") which did not visually indicate it was an intermediate loading state and lacked semantic cues for assistive technologies.
+📸 Before/After: Visual changes introduce a blue spinning loading indicator and improved layout centering.
+♿ Accessibility: Added `aria-live="polite"` and `aria-busy="true"` to the wrapping `<main>` element to communicate the loading state to screen readers. Added `aria-hidden="true"` to the decorative visual spinner.

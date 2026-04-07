@@ -92,11 +92,25 @@ const MIME_TYPES = {
 const WAITING_PAGE = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><title>Brainstorm Companion</title>
-<style>body { font-family: system-ui, sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; }
-h1 { color: #333; } p { color: #666; }</style>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; padding: 2rem; max-width: 800px; margin: 0 auto; background: #f5f5f7; color: #1d1d1f; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center; }
+  h1 { font-size: 1.5rem; font-weight: 500; margin-bottom: 0.5rem; color: #1d1d1f; }
+  p { color: #86868b; font-size: 1rem; }
+  .spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid rgba(0, 113, 227, 0.2); border-radius: 50%; border-top-color: #0071e3; animation: spin 1s ease-in-out infinite; margin-bottom: 1.5rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-color-scheme: dark) {
+    body { background: #1d1d1f; color: #f5f5f7; }
+    h1 { color: #f5f5f7; } p { color: #86868b; }
+  }
+</style>
 </head>
-<body><h1>Brainstorm Companion</h1>
-<p>Waiting for the agent to push a screen...</p></body></html>`;
+<body>
+  <main aria-live="polite" aria-busy="true">
+    <div class="spinner" aria-hidden="true"></div>
+    <h1>Brainstorm Companion</h1>
+    <p>Waiting for the agent to push a screen...</p>
+  </main>
+</body></html>`;
 
 const frameTemplate = fs.readFileSync(path.join(__dirname, 'frame-template.html'), 'utf-8');
 const helperScript = fs.readFileSync(path.join(__dirname, 'helper.js'), 'utf-8');
@@ -195,7 +209,7 @@ function handleRequest(req, res) {
       const screenFile = cachedNewestScreen;
       let html;
       if (screenFile) {
-        const raw = await fs.promises.readFile(screenFile, 'utf-8');
+        const raw = fs.readFileSync(screenFile, 'utf-8');
         html = isFullDocument(raw) ? raw : wrapInFrame(raw);
       } else {
         html = WAITING_PAGE;
@@ -218,9 +232,7 @@ function handleRequest(req, res) {
       const fileName = req.url.slice(7);
       const filePath = path.join(CONTENT_DIR, path.basename(fileName));
 
-      try {
-        await fs.promises.access(filePath, fs.constants.R_OK);
-      } catch (e) {
+      if (!fs.existsSync(filePath)) {
         res.writeHead(404);
         res.end('Not found');
         return;
@@ -261,6 +273,27 @@ function handleRequest(req, res) {
 const clients = new Set();
 
 function handleUpgrade(req, socket) {
+  // Prevent cross-origin WebSocket hijacking
+  const origin = req.headers.origin;
+  if (origin) {
+    let host;
+    try {
+      const originUrl = new URL(origin);
+      host = originUrl.hostname;
+    } catch (e) {
+      socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    const validHosts = ['localhost', '127.0.0.1'];
+    if (!validHosts.includes(host)) {
+      socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+  }
+
   const key = req.headers['sec-websocket-key'];
   if (!key) { socket.destroy(); return; }
 
