@@ -160,7 +160,7 @@ async function updateNewestScreen() {
 
 // ========== HTTP Request Handler ==========
 
-function handleRequest(req, res) {
+async function handleRequest(req, res) {
   touchActivity();
 
   // Prevent DNS rebinding by validating the Host header
@@ -259,8 +259,25 @@ function handleRequest(req, res) {
 // ========== WebSocket Connection Handling ==========
 
 const clients = new Set();
+const MAX_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB
 
 function handleUpgrade(req, socket) {
+  const origin = req.headers.origin;
+  if (origin) {
+    try {
+      const originUrl = new URL(origin);
+      if (originUrl.hostname !== 'localhost' && originUrl.hostname !== '127.0.0.1') {
+        socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+        socket.destroy();
+        return;
+      }
+    } catch (e) {
+      socket.write('HTTP/1.1 403 Forbidden\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+  }
+
   const key = req.headers['sec-websocket-key'];
   if (!key) { socket.destroy(); return; }
 
@@ -311,6 +328,15 @@ function handleUpgrade(req, socket) {
         }
       }
     }
+
+    if (buffer.length > MAX_BUFFER_SIZE) {
+      const closeBuf = Buffer.alloc(2);
+      closeBuf.writeUInt16BE(1009); // Message Too Big
+      socket.end(encodeFrame(OPCODES.CLOSE, closeBuf));
+      clients.delete(socket);
+      socket.destroy();
+      return;
+    }
   });
 
   socket.on('close', () => clients.delete(socket));
@@ -330,6 +356,8 @@ function handleMessage(text) {
   }
   touchActivity();
 
+  // Trusted properties should be placed AFTER the spread operator
+  // to prevent spoofing by the incoming object payload.
   const secureEvent = { ...event, source: 'user-event' };
   console.log(JSON.stringify(secureEvent));
   if (secureEvent.choice) {
