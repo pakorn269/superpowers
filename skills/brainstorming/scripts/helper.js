@@ -27,7 +27,7 @@
       const statusEl = document.querySelector('.header .status');
       if (statusEl) {
         statusEl.classList.add('disconnected');
-        statusEl.textContent = 'Reconnecting...';
+        statusEl.textContent = 'Disconnected';
       }
       setTimeout(connect, 1000);
     };
