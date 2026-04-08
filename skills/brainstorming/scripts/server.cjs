@@ -9,6 +9,9 @@ const OPCODES = { TEXT: 0x01, CLOSE: 0x08, PING: 0x09, PONG: 0x0A };
 const WS_MAGIC = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
 function computeAcceptKey(clientKey) {
+  if (typeof clientKey !== 'string' || !clientKey) {
+    throw new TypeError('Client key must be a non-empty string');
+  }
   return crypto.createHash('sha1').update(clientKey + WS_MAGIC).digest('base64');
 }
 
@@ -160,7 +163,7 @@ async function updateNewestScreen() {
 
 // ========== HTTP Request Handler ==========
 
-function handleRequest(req, res) {
+async function handleRequest(req, res) {
   touchActivity();
 
   // Prevent DNS rebinding by validating the Host header
@@ -261,6 +264,29 @@ function handleRequest(req, res) {
 const clients = new Set();
 
 function handleUpgrade(req, socket) {
+  // Prevent Cross-Site WebSocket Hijacking (CSWSH) by validating Origin
+  const origin = req.headers.origin;
+  if (origin) {
+    try {
+      const parsedOrigin = new URL(origin);
+      const hostName = parsedOrigin.hostname;
+      if (
+        hostName !== 'localhost' &&
+        hostName !== '127.0.0.1' &&
+        hostName !== '[::1]' &&
+        hostName !== '::1' &&
+        hostName !== HOST &&
+        HOST !== '0.0.0.0'
+      ) {
+        socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
+        return;
+      }
+    } catch (err) {
+      socket.end('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n');
+      return;
+    }
+  }
+
   const key = req.headers['sec-websocket-key'];
   if (!key) { socket.destroy(); return; }
 
