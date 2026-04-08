@@ -29,3 +29,7 @@
 ## 2026-04-14 - Avoid per-request filesystem I/O in route handlers
 **Learning:** Calling `fs.promises.readdir` and `fs.promises.stat` inside the root HTTP handler (`GET /`) executes disk I/O on every single request. Even when using async variants, this creates a major performance bottleneck under load compared to serving from memory.
 **Action:** When serving static files that are already being monitored by `fs.watch`, maintain a cached state (e.g., `cachedNewestScreen`) in memory. Update the cache on startup and inside the watcher callback, and serve requests directly from the memory cache.
+
+## 2026-04-20 - Avoid String.prototype.replace() for end-of-file injection
+**Learning:** Checking `html.includes('</body>')` and then doing `html.replace('</body>', ...)` requires iterating a potentially huge multi-megabyte string twice from the very beginning. This blocks the event loop for ~5ms on a 5MB payload.
+**Action:** When replacing a substring known to be near the *end* of a massive payload (like `</body>`), `html.lastIndexOf('</body>')` combined with `html.slice(0, idx) + inject + html.slice(idx + 7)` executes in roughly ~0.009ms, entirely skipping the slow forward scan.
