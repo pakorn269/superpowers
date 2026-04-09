@@ -26,3 +26,8 @@
 **Vulnerability:** The brainstorm server merged untrusted WebSocket events with trusted properties using `{ source: 'user-event', ...event }`. This allowed an attacker to spoof the `source` property by including it in the `event` payload, overriding the trusted value.
 **Learning:** When merging untrusted input objects with trusted overrides, the trusted properties must be placed after the spread operator to prevent spoofing by the incoming object payload.
 **Prevention:** Always place trusted properties after the spread operator (e.g., `{ ...event, source: 'user-event' }`) when creating merged objects.
+
+## 2026-04-09 - Fix Cross-Site WebSocket Hijacking (CSWSH) in Local Server
+**Vulnerability:** The local brainstorming WebSocket server (`skills/brainstorming/scripts/server.cjs`) accepted connections from any origin, making it vulnerable to Cross-Site WebSocket Hijacking (CSWSH).
+**Learning:** Local WebSocket servers without origin validation allow malicious public websites running in the user's browser to connect to localhost and interact with local services.
+**Prevention:** Always validate `req.headers.origin` during the WebSocket HTTP upgrade handshake against a strict list of allowed hosts (e.g., `localhost`, `127.0.0.1`, `[::1]`) to prevent unauthorized cross-origin connections.
