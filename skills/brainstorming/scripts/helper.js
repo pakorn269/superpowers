@@ -2,11 +2,13 @@
   const WS_URL = 'ws://' + window.location.host;
   let ws = null;
   let eventQueue = [];
+  let hasConnected = false;
 
   function connect() {
     ws = new WebSocket(WS_URL);
 
     ws.onopen = () => {
+      hasConnected = true;
       eventQueue.forEach(e => ws.send(JSON.stringify(e)));
       eventQueue = [];
       const statusEl = document.querySelector('.header .status');
@@ -33,7 +35,7 @@
       if (statusEl) {
         statusEl.classList.add('connecting');
         statusEl.classList.remove('disconnected');
-        statusEl.textContent = 'Connecting...';
+        statusEl.textContent = hasConnected ? 'Reconnecting...' : 'Connecting...';
       }
 
       const mainEl = document.querySelector('main');
@@ -99,7 +101,7 @@
       const container = target.closest('.options') || target.closest('.cards');
       const selected = container ? container.querySelectorAll('.selected') : [];
       if (selected.length === 0) {
-        indicator.textContent = 'Click an option above, then return to the terminal';
+        indicator.textContent = 'Click or press Enter on an option above, then return to the terminal';
       } else if (selected.length === 1) {
         const label = selected[0].querySelector('h3, .content h3, .card-body h3')?.textContent?.trim() || selected[0].dataset.choice;
         indicator.textContent = '';
