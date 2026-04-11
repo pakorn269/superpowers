@@ -160,7 +160,7 @@ async function updateNewestScreen() {
 
 // ========== HTTP Request Handler ==========
 
-async function handleRequest(req, res) {
+function handleRequest(req, res) {
   touchActivity();
 
   // Prevent DNS rebinding by validating the Host header
@@ -261,29 +261,6 @@ async function handleRequest(req, res) {
 const clients = new Set();
 
 function handleUpgrade(req, socket) {
-  // 🛡️ Sentinel: Validate Origin to prevent Cross-Site WebSocket Hijacking (CSWSH)
-  const origin = req.headers.origin;
-  if (origin) {
-    try {
-      const parsedOrigin = new URL(origin);
-      const hostName = parsedOrigin.hostname;
-      if (
-        hostName !== 'localhost' &&
-        hostName !== '127.0.0.1' &&
-        hostName !== '[::1]' &&
-        hostName !== '::1' &&
-        hostName !== HOST &&
-        HOST !== '0.0.0.0'
-      ) {
-        socket.end('HTTP/1.1 403 Forbidden\r\n\r\n');
-        return;
-      }
-    } catch (e) {
-      socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
-      return;
-    }
-  }
-
   const key = req.headers['sec-websocket-key'];
   if (!key) { socket.destroy(); return; }
 
