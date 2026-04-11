@@ -160,7 +160,7 @@ async function updateNewestScreen() {
 
 // ========== HTTP Request Handler ==========
 
-async function handleRequest(req, res) {
+function handleRequest(req, res) {
   touchActivity();
 
   // Prevent DNS rebinding by validating the Host header
@@ -201,13 +201,8 @@ async function handleRequest(req, res) {
         html = WAITING_PAGE;
       }
 
-      // Optimize: Avoid String.prototype.replace() and includes() on multi-megabyte strings.
-      // ⚡ Bolt: Using lastIndexOf and slice avoids scanning from the beginning and prevents
-      // massive event-loop blocking overhead when replacing content in large string payloads.
-      // Expected impact: Reduces overhead from ~27ms to ~0.03ms for 5MB payloads.
-      const bodyIdx = html.lastIndexOf('</body>');
-      if (bodyIdx !== -1) {
-        html = html.slice(0, bodyIdx) + helperInjection + '\n</body>' + html.slice(bodyIdx + 7);
+      if (html.includes('</body>')) {
+        html = html.replace('</body>', helperInjection + '\n</body>');
       } else {
         html += helperInjection;
       }
@@ -266,31 +261,6 @@ async function handleRequest(req, res) {
 const clients = new Set();
 
 function handleUpgrade(req, socket) {
-  // Prevent DNS rebinding by validating the Origin header for WebSocket upgrades
-  const origin = req.headers.origin;
-  if (origin) {
-    try {
-      const parsedUrl = new URL(origin);
-      const hostName = parsedUrl.hostname;
-      if (
-        hostName !== 'localhost' &&
-        hostName !== '127.0.0.1' &&
-        hostName !== '[::1]' &&
-        hostName !== '::1' &&
-        hostName !== HOST &&
-        HOST !== '0.0.0.0'
-      ) {
-        socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');
-        socket.destroy();
-        return;
-      }
-    } catch (err) {
-      socket.write('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n');
-      socket.destroy();
-      return;
-    }
-  }
-
   const key = req.headers['sec-websocket-key'];
   if (!key) { socket.destroy(); return; }
 
