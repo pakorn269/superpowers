@@ -13,3 +13,6 @@
 ## 2026-03-30 - Baseline Accessibility in Generated HTML
 **Learning:** When providing HTML templates for LLM-generated UI (e.g., `frame-template.html`), ensure baseline keyboard accessibility by including a 'Skip to content' link (with `tabindex="-1"` on its target container for programmatic focus) and global `:focus-visible` styles for common interactive elements (`a`, `button`, `[tabindex="0"]`).
 **Action:** Automatically inject 'Skip to content' and focus-visible utilities so keyboard and screen-reader users have a consistent baseline, regardless of how perfectly the LLM structures the page content.
+## 2026-04-12 - Reconnecting State Visibility
+**Learning:** Adding custom CSS (e.g., custom animations, custom `.reconnecting` classes) might violate strict design system constraints or explicit user rules. We can often achieve the same UX intent (communicating reconnecting state) by applying existing styling classes (e.g., `.connecting`) but updating the text content.
+**Action:** When asked to stay within existing design constraints, prioritize reusing existing classes to achieve the desired visual state while using text content (and `aria-live` attributes) to provide explicitly clear statuses.

@@ -2,11 +2,13 @@
   const WS_URL = 'ws://' + window.location.host;
   let ws = null;
   let eventQueue = [];
+  let hasConnected = false;
 
   function connect() {
     ws = new WebSocket(WS_URL);
 
     ws.onopen = () => {
+      hasConnected = true;
       eventQueue.forEach(e => ws.send(JSON.stringify(e)));
       eventQueue = [];
       const statusEl = document.querySelector('.header .status');
@@ -33,7 +35,11 @@
       if (statusEl) {
         statusEl.classList.add('connecting');
         statusEl.classList.remove('disconnected');
-        statusEl.textContent = 'Connecting...';
+        if (hasConnected) {
+          statusEl.textContent = 'Reconnecting...';
+        } else {
+          statusEl.textContent = 'Connecting...';
+        }
       }
 
       const mainEl = document.querySelector('main');
