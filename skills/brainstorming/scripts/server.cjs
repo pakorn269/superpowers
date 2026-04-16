@@ -140,8 +140,18 @@ function wrapInFrame(content) {
   return frameTemplate;
 }
 
-// Optimize: Cache the newest screen path to avoid `readdir` and `stat` on every HTTP request
+// ⚡ Bolt: Cache the fully constructed HTML response globally to avoid filesystem I/O (readFile)
+// and repetitive string manipulation inside the frequently accessed GET / route handler.
+// Expected impact: Eliminates read bottlenecks and string allocation overhead on every request.
 let cachedNewestScreen = null;
+let cachedIndexHtml = (() => {
+  const html = WAITING_PAGE;
+  const bodyIdx = html.lastIndexOf('</body>');
+  if (bodyIdx !== -1) {
+    return html.slice(0, bodyIdx) + helperInjection + '\n</body>' + html.slice(bodyIdx + 7);
+  }
+  return html + helperInjection;
+})();
 
 async function updateNewestScreen() {
   try {
@@ -157,6 +167,21 @@ async function updateNewestScreen() {
 
     fileStats.sort((a, b) => b.mtime - a.mtime);
     cachedNewestScreen = fileStats.length > 0 ? fileStats[0].path : null;
+
+    let html;
+    if (cachedNewestScreen) {
+      const raw = await fs.promises.readFile(cachedNewestScreen, 'utf-8');
+      html = isFullDocument(raw) ? raw : wrapInFrame(raw);
+    } else {
+      html = WAITING_PAGE;
+    }
+
+    const bodyIdx = html.lastIndexOf('</body>');
+    if (bodyIdx !== -1) {
+      cachedIndexHtml = html.slice(0, bodyIdx) + helperInjection + '\n</body>' + html.slice(bodyIdx + 7);
+    } else {
+      cachedIndexHtml = html + helperInjection;
+    }
   } catch (err) {
     console.error('Failed to update newest screen:', err);
   }
@@ -164,7 +189,7 @@ async function updateNewestScreen() {
 
 // ========== HTTP Request Handler ==========
 
-function handleRequest(req, res) {
+async function handleRequest(req, res) {
   touchActivity();
 
   // Prevent DNS rebinding by validating the Host header
@@ -196,31 +221,13 @@ function handleRequest(req, res) {
 
   try {
     if (req.method === 'GET' && req.url === '/') {
-      const screenFile = cachedNewestScreen;
-      let html;
-      if (screenFile) {
-        const raw = await fs.promises.readFile(screenFile, 'utf-8');
-        html = isFullDocument(raw) ? raw : wrapInFrame(raw);
-      } else {
-        html = WAITING_PAGE;
-      }
-
-      // ⚡ Bolt: Use lastIndexOf and slice instead of includes/replace for massive HTML strings
-      // Expected impact: ~27ms overhead down to ~0.03ms for 5MB payloads.
-      const bodyIdx = html.lastIndexOf('</body>');
-      if (bodyIdx !== -1) {
-        html = html.slice(0, bodyIdx) + helperInjection + '\n</body>' + html.slice(bodyIdx + 7);
-      } else {
-        html += helperInjection;
-      }
-
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:;",
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY'
       });
-      res.end(html);
+      res.end(cachedIndexHtml);
     } else if (req.method === 'GET' && req.url.startsWith('/files/')) {
       const fileName = req.url.slice(7);
       const filePath = path.join(CONTENT_DIR, path.basename(fileName));
