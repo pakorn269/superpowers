@@ -31,3 +31,8 @@
 **Vulnerability:** The CSWSH and bad WebSocket request handler used `socket.destroy()` which simply closes the TCP socket without giving the client an HTTP response.
 **Learning:** When rejecting a WebSocket upgrade in Node.js, we must send an appropriate HTTP status line (e.g. `HTTP/1.1 403 Forbidden\r\n\r\n`) via `socket.end()` before closing, so that the client (and any intermediate proxies) understands the failure mode instead of just getting a closed connection.
 **Prevention:** Instead of `socket.destroy()`, always use `socket.end('HTTP/1.1 <StatusCode> <StatusMessage>\r\n\r\n')`.
+
+## 2025-05-15 - [URI Decoding Bug in File Download]
+**Vulnerability:** Lack of URI decoding in native HTTP server `/files/` endpoint prevented downloading files with encoded characters.
+**Learning:** In Node.js native `http` servers, `req.url` is not automatically URL-decoded. While `path.basename()` prevents path traversal, the lack of decoding causes functional bugs for files with spaces or special characters.
+**Prevention:** Safely decode the URI segment first (wrapped in a `try/catch` to return a 400 Bad Request on malformed URIs like `%FF`), then pass the decoded string to `path.basename()`.
