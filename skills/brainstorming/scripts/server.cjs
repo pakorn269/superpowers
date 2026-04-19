@@ -222,7 +222,14 @@ function handleRequest(req, res) {
       });
       res.end(html);
     } else if (req.method === 'GET' && req.url.startsWith('/files/')) {
-      const fileName = req.url.slice(7);
+      let fileName;
+      try {
+        fileName = decodeURIComponent(req.url.slice(7));
+      } catch (e) {
+        res.writeHead(400);
+        res.end('Bad Request');
+        return;
+      }
       const filePath = path.join(CONTENT_DIR, path.basename(fileName));
 
       try {
