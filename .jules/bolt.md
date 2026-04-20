@@ -32,3 +32,6 @@
 ## 2026-04-09 - Avoid string replace on multi-megabyte HTML screens
 **Learning:** Using `String.prototype.replace()` on multi-megabyte HTML strings (e.g., when injecting helpers before `</body>`) forces the regex engine or string scanner to traverse the entire string from the beginning, blocking the event loop for a significant amount of time (~27ms for 5MB).
 **Action:** Use `String.prototype.lastIndexOf()` combined with string `slice()` when inserting content near the end of massive strings, which operates almost instantly (~0.03ms).
+## 2026-04-11 - Do not block event loop with Sync operations to solve syntax errors
+**Learning:** In Node.js server scripts, when attempting to fix an "await is only valid in async functions" syntax error inside a route handler (e.g. `handleRequest`), replacing `await fs.promises.access` with `fs.accessSync` introduces a severe performance anti-pattern. Synchronous I/O in a request handler blocks the main event loop, significantly degrading concurrent request handling capabilities.
+**Action:** Always convert the containing handler function to an `async` function (e.g., `async function handleRequest(req, res)`) instead of falling back to synchronous equivalents to maintain non-blocking execution.
