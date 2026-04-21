@@ -16,3 +16,7 @@
 ## 2026-04-12 - Reconnecting State Visibility
 **Learning:** Adding custom CSS (e.g., custom animations, custom `.reconnecting` classes) might violate strict design system constraints or explicit user rules. We can often achieve the same UX intent (communicating reconnecting state) by applying existing styling classes (e.g., `.connecting`) but updating the text content.
 **Action:** When asked to stay within existing design constraints, prioritize reusing existing classes to achieve the desired visual state while using text content (and `aria-live` attributes) to provide explicitly clear statuses.
+
+## 2026-04-11 - Accessible Connection Recovery States
+**Learning:** When a persistent background WebSocket connection drops after being successfully established, simply reverting to a generic "Connecting..." state fails to provide accurate context to users and screen readers, leading to confusion about whether the system is starting up or recovering from a failure.
+**Action:** Track whether the connection has previously succeeded and, upon disconnection, explicitly transition the UI to a "Reconnecting..." state. Combine this with pulsing visual indicators and `aria-live` announcements to provide accurate status updates during recovery.
