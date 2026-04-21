@@ -32,6 +32,10 @@
 **Learning:** When rejecting a WebSocket upgrade in Node.js, we must send an appropriate HTTP status line (e.g. `HTTP/1.1 403 Forbidden\r\n\r\n`) via `socket.end()` before closing, so that the client (and any intermediate proxies) understands the failure mode instead of just getting a closed connection.
 **Prevention:** Instead of `socket.destroy()`, always use `socket.end('HTTP/1.1 <StatusCode> <StatusMessage>\r\n\r\n')`.
 
+## 2026-05-18 - [Missing URL Decoding in Brainstorm Server File Endpoint]
+**Vulnerability:** The `/files/...` static file serving endpoint did not use `decodeURIComponent()` on `req.url`. This caused files containing spaces or special characters (which browsers encode in the request path) to result in a 404. Also, incorrectly handling encoding without catching exceptions can lead to server crashes (e.g. from `URIError` when encountering `%FF`).
+**Learning:** In Node.js native `http` servers, `req.url` is not automatically URL-decoded. To correctly serve files with encoded characters while preventing path traversal, safely decode the URI segment first (wrapped in a `try/catch` to return a 400 Bad Request on malformed URIs), then pass the decoded string to `path.basename()`.
+**Prevention:** Always use `decodeURIComponent()` wrapped in a `try/catch` block before using URL components from `req.url` for file system operations.
 ## 2024-05-15 - Un-decoded URL handling in files endpoint
 **Vulnerability:** The `/files/` endpoint in `skills/brainstorming/scripts/server.cjs` extracts the file name directly from `req.url` without decoding it, e.g., `const fileName = req.url.slice(7); path.basename(fileName)`. If a file has encoded characters (like spaces `%20`), it would look up the literal string `%20...` instead of the decoded name, failing to serve the file and potentially leading to unexpected path behavior or missed file protections.
 **Learning:** Node.js native `http` server `req.url` is not automatically URL-decoded.
