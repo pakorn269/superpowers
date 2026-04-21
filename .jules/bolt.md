@@ -32,6 +32,9 @@
 ## 2026-04-09 - Avoid string replace on multi-megabyte HTML screens
 **Learning:** Using `String.prototype.replace()` on multi-megabyte HTML strings (e.g., when injecting helpers before `</body>`) forces the regex engine or string scanner to traverse the entire string from the beginning, blocking the event loop for a significant amount of time (~27ms for 5MB).
 **Action:** Use `String.prototype.lastIndexOf()` combined with string `slice()` when inserting content near the end of massive strings, which operates almost instantly (~0.03ms).
+## 2026-04-14 - Avoid per-request filesystem I/O in route handlers
+**Learning:** Calling `fs.promises.readdir` and `fs.promises.stat` or even `fs.promises.readFile` inside the root HTTP handler (`GET /`) executes disk I/O on every single request. This creates a major performance bottleneck under load compared to serving from memory. Moreover, string manipulation inside the route handler also impacts the event loop negatively.
+**Action:** When serving static files or fully constructed string responses that are already being monitored by `fs.watch`, maintain a cached string state (e.g., `cachedHtmlResponse`) in memory. Update the cache on startup and inside the watcher callback, and serve requests directly from the memory cache.
 ## 2026-04-16 - Eliminate filesystem I/O and repetitive string manipulation in frequent route handlers
 **Learning:** In Node.js server scripts, avoid performing filesystem I/O (e.g., `readFile`) or repetitive string manipulation inside frequently accessed route handlers (e.g., `GET /`). This introduces severe bottlenecks and overhead per-request.
 **Action:** Instead, cache the fully constructed response globally and update it on startup and via `fs.watch` callbacks to eliminate the read and allocation overhead on every request.
