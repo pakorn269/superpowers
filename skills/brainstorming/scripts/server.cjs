@@ -140,14 +140,10 @@ function wrapInFrame(content) {
   return frameTemplate;
 }
 
-// Optimize: Cache the newest screen path to avoid `readdir` and `stat` on every HTTP request
-let cachedResponse = WAITING_PAGE;
-const bodyIdxInitial = WAITING_PAGE.lastIndexOf('</body>');
-if (bodyIdxInitial !== -1) {
-  cachedResponse = WAITING_PAGE.slice(0, bodyIdxInitial) + helperInjection + '\n</body>' + WAITING_PAGE.slice(bodyIdxInitial + 7);
-} else {
-  cachedResponse += helperInjection;
-}
+// Optimize: Cache the constructed HTML response to avoid per-request filesystem I/O and string parsing
+let cachedHtmlResponse = WAITING_PAGE + helperInjection; // Initial fallback state
+
+let cachedHtml = WAITING_PAGE + helperInjection;
 
 async function updateNewestScreen() {
   try {
@@ -162,28 +158,23 @@ async function updateNewestScreen() {
     }
 
     fileStats.sort((a, b) => b.mtime - a.mtime);
-    const screenFile = fileStats.length > 0 ? fileStats[0].path : null;
+    cachedNewestScreen = fileStats.length > 0 ? fileStats[0].path : null;
 
-    if (screenFile) {
-      const raw = await fs.promises.readFile(screenFile, 'utf-8');
-      let html = isFullDocument(raw) ? raw : wrapInFrame(raw);
-
-      const bodyIdx = html.lastIndexOf('</body>');
-      if (bodyIdx !== -1) {
-        html = html.slice(0, bodyIdx) + helperInjection + '\n</body>' + html.slice(bodyIdx + 7);
-      } else {
-        html += helperInjection;
-      }
-      cachedResponse = html;
+    // ⚡ Bolt: Cache the fully constructed HTML in memory
+    // Expected impact: Eliminates disk I/O and string operations on every GET / request
+    let html;
+    if (cachedNewestScreen) {
+      const raw = await fs.promises.readFile(cachedNewestScreen, 'utf-8');
+      html = isFullDocument(raw) ? raw : wrapInFrame(raw);
     } else {
-      let html = WAITING_PAGE;
-      const bodyIdx = html.lastIndexOf('</body>');
-      if (bodyIdx !== -1) {
-        html = html.slice(0, bodyIdx) + helperInjection + '\n</body>' + html.slice(bodyIdx + 7);
-      } else {
-        html += helperInjection;
-      }
-      cachedResponse = html;
+      html = WAITING_PAGE;
+    }
+
+    const bodyIdx = html.lastIndexOf('</body>');
+    if (bodyIdx !== -1) {
+      cachedHtml = html.slice(0, bodyIdx) + helperInjection + '\n</body>' + html.slice(bodyIdx + 7);
+    } else {
+      cachedHtml = html + helperInjection;
     }
   } catch (err) {
     console.error('Failed to update newest screen:', err);
@@ -224,16 +215,27 @@ async function handleRequest(req, res) {
 
   try {
     if (req.method === 'GET' && req.url === '/') {
+      // Serve the pre-rendered HTML from memory cache
+
       res.writeHead(200, {
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss:;",
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY'
       });
-      res.end(cachedResponse);
+      res.end(cachedHtml);
     } else if (req.method === 'GET' && req.url.startsWith('/files/')) {
       const fileName = req.url.slice(7);
-      const filePath = path.join(CONTENT_DIR, path.basename(fileName));
+      // Decode URI component to properly resolve basename and prevent path traversal
+      let decodedFileName;
+      try {
+        decodedFileName = decodeURIComponent(fileName);
+      } catch (e) {
+        res.writeHead(400);
+        res.end('Bad Request');
+        return;
+      }
+      const filePath = path.join(CONTENT_DIR, path.basename(decodedFileName));
 
       try {
         await fs.promises.access(filePath, fs.constants.R_OK);
