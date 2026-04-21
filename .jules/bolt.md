@@ -32,6 +32,10 @@
 ## 2026-04-09 - Avoid string replace on multi-megabyte HTML screens
 **Learning:** Using `String.prototype.replace()` on multi-megabyte HTML strings (e.g., when injecting helpers before `</body>`) forces the regex engine or string scanner to traverse the entire string from the beginning, blocking the event loop for a significant amount of time (~27ms for 5MB).
 **Action:** Use `String.prototype.lastIndexOf()` combined with string `slice()` when inserting content near the end of massive strings, which operates almost instantly (~0.03ms).
+
+## 2026-04-19 - Use slice instead of RegExp for extracting frontmatter
+**Learning:** Using a regular expression like `/^---\n([\s\S]*?)\n---\n([\s\S]*)$/` to extract frontmatter from potentially large files causes huge string allocation and blocks the event loop because it captures the entire remaining body.
+**Action:** When extracting chunks near the beginning of potentially large files, use string primitives like `startsWith`, `indexOf`, and `slice` instead of regex captures.
 ## 2026-04-14 - Avoid per-request filesystem I/O in route handlers
 **Learning:** Calling \`fs.promises.readdir\` and \`fs.promises.stat\` inside the root HTTP handler (\`GET /\`) executes disk I/O on every single request. Even when using async variants, this creates a major performance bottleneck under load compared to serving from memory.
 **Action:** When serving static files that are already being monitored by \`fs.watch\`, maintain a cached state (e.g., \`cachedResponse\`) in memory. Update the cache on startup and inside the watcher callback, and serve requests directly from the memory cache.
