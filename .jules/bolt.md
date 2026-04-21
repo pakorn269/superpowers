@@ -32,3 +32,10 @@
 ## 2026-04-09 - Avoid string replace on multi-megabyte HTML screens
 **Learning:** Using `String.prototype.replace()` on multi-megabyte HTML strings (e.g., when injecting helpers before `</body>`) forces the regex engine or string scanner to traverse the entire string from the beginning, blocking the event loop for a significant amount of time (~27ms for 5MB).
 **Action:** Use `String.prototype.lastIndexOf()` combined with string `slice()` when inserting content near the end of massive strings, which operates almost instantly (~0.03ms).
+## 2026-04-14 - Await inside handleRequest
+**Learning:** Refactoring a synchronous function to `async` without properly updating its call sites introduces bugs. For example, the `await` was added in `handleRequest` without making the function async, which broke parsing. Once fixed, the server operates correctly.
+**Action:** When making route handlers async, thoroughly verify and update all internal logic to handle `await` results to prevent syntax or runtime regressions.
+
+## 2026-04-14 - Avoid per-request filesystem I/O in route handlers
+**Learning:** Calling `fs.promises.readdir` and `fs.promises.stat` inside the root HTTP handler (`GET /`) executes disk I/O on every single request. Even when using async variants, this creates a major performance bottleneck under load compared to serving from memory. Moreover, reading and wrapping the file in HTML templates dynamically for every single request duplicates effort unnecessarily.
+**Action:** When serving static files that are already being monitored by `fs.watch`, maintain a fully constructed `cachedHtml` state in memory. Update the cache on startup and inside the watcher callback, and serve requests directly from the memory cache.
