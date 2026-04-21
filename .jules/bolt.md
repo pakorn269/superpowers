@@ -35,3 +35,10 @@
 ## 2026-04-16 - Eliminate filesystem I/O and repetitive string manipulation in frequent route handlers
 **Learning:** In Node.js server scripts, avoid performing filesystem I/O (e.g., `readFile`) or repetitive string manipulation inside frequently accessed route handlers (e.g., `GET /`). This introduces severe bottlenecks and overhead per-request.
 **Action:** Instead, cache the fully constructed response globally and update it on startup and via `fs.watch` callbacks to eliminate the read and allocation overhead on every request.
+## 2026-04-14 - Await inside handleRequest
+**Learning:** Refactoring a synchronous function to `async` without properly updating its call sites introduces bugs. For example, the `await` was added in `handleRequest` without making the function async, which broke parsing. Once fixed, the server operates correctly.
+**Action:** When making route handlers async, thoroughly verify and update all internal logic to handle `await` results to prevent syntax or runtime regressions.
+
+## 2026-04-14 - Avoid per-request filesystem I/O in route handlers
+**Learning:** Calling `fs.promises.readdir` and `fs.promises.stat` inside the root HTTP handler (`GET /`) executes disk I/O on every single request. Even when using async variants, this creates a major performance bottleneck under load compared to serving from memory. Moreover, reading and wrapping the file in HTML templates dynamically for every single request duplicates effort unnecessarily.
+**Action:** When serving static files that are already being monitored by `fs.watch`, maintain a fully constructed `cachedHtml` state in memory. Update the cache on startup and inside the watcher callback, and serve requests directly from the memory cache.
