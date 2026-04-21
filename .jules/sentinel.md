@@ -31,6 +31,10 @@
 **Vulnerability:** The CSWSH and bad WebSocket request handler used `socket.destroy()` which simply closes the TCP socket without giving the client an HTTP response.
 **Learning:** When rejecting a WebSocket upgrade in Node.js, we must send an appropriate HTTP status line (e.g. `HTTP/1.1 403 Forbidden\r\n\r\n`) via `socket.end()` before closing, so that the client (and any intermediate proxies) understands the failure mode instead of just getting a closed connection.
 **Prevention:** Instead of `socket.destroy()`, always use `socket.end('HTTP/1.1 <StatusCode> <StatusMessage>\r\n\r\n')`.
+## 2024-04-15 - [Safe URI Decoding]
+**Vulnerability:** Unhandled Malformed URI
+**Learning:** Node.js native `req.url` is not automatically decoded. Failing to safely decode with `try/catch` might cause `URI malformed` exceptions, leading to unhandled errors if not properly caught, and potentially exposing the application to crashes on malicious inputs like `%FF`.
+**Prevention:** Wrap `decodeURIComponent` in `try/catch` blocks and return `400 Bad Request` when handling file serving via raw `req.url`.
 
 ## 2026-04-13 - [URL Encoding Bypass for Path Traversal]
 **Vulnerability:** The brainstorm server directly passed `req.url.slice(7)` to `path.basename()`. Because Node HTTP module does not automatically URI-decode `req.url`, a double-encoded URL or manually constructed request could bypass simple literal checks, leading to failed requests or misinterpretations of the file name. By failing to decode, valid files with spaces or encoded characters would fail to be served correctly, or worse, specific traversal structures might exploit subsequent resolution logic if combined with other systems.
