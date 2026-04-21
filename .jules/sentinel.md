@@ -36,3 +36,24 @@
 **Vulnerability:** The static file server did not URL-decode incoming file paths (`req.url.slice(7)`), breaking valid file downloads for files with spaces or special characters. Furthermore, decoding the URL directly could lead to unhandled `URIError` crashes if the URL contained malformed percentage encodings (e.g., `%FF`).
 **Learning:** Node.js native `http` server does not decode `req.url` automatically. We must decode the URI segment safely inside a `try/catch` block to handle malformed requests and return a `400 Bad Request` instead of crashing.
 **Prevention:** Wrap `decodeURIComponent` in a `try/catch` block before joining it with `path.join()`.
+## 2025-05-15 - [URI Decoding Bug in File Download]
+**Vulnerability:** Lack of URI decoding in native HTTP server `/files/` endpoint prevented downloading files with encoded characters.
+**Learning:** In Node.js native `http` servers, `req.url` is not automatically URL-decoded. While `path.basename()` prevents path traversal, the lack of decoding causes functional bugs for files with spaces or special characters.
+**Prevention:** Safely decode the URI segment first (wrapped in a `try/catch` to return a 400 Bad Request on malformed URIs like `%FF`), then pass the decoded string to `path.basename()`.
+## 2026-05-18 - [Missing URL Decoding in Brainstorm Server File Endpoint]
+**Vulnerability:** The `/files/...` static file serving endpoint did not use `decodeURIComponent()` on `req.url`. This caused files containing spaces or special characters (which browsers encode in the request path) to result in a 404. Also, incorrectly handling encoding without catching exceptions can lead to server crashes (e.g. from `URIError` when encountering `%FF`).
+**Learning:** In Node.js native `http` servers, `req.url` is not automatically URL-decoded. To correctly serve files with encoded characters while preventing path traversal, safely decode the URI segment first (wrapped in a `try/catch` to return a 400 Bad Request on malformed URIs), then pass the decoded string to `path.basename()`.
+**Prevention:** Always use `decodeURIComponent()` wrapped in a `try/catch` block before using URL components from `req.url` for file system operations.
+## 2024-05-15 - Un-decoded URL handling in files endpoint
+**Vulnerability:** The `/files/` endpoint in `skills/brainstorming/scripts/server.cjs` extracts the file name directly from `req.url` without decoding it, e.g., `const fileName = req.url.slice(7); path.basename(fileName)`. If a file has encoded characters (like spaces `%20`), it would look up the literal string `%20...` instead of the decoded name, failing to serve the file and potentially leading to unexpected path behavior or missed file protections.
+**Learning:** Node.js native `http` server `req.url` is not automatically URL-decoded.
+**Prevention:** Always safely decode the URI segment using `decodeURIComponent` (wrapped in a `try/catch` to return a 400 Bad Request on malformed URIs like `%FF`) before passing the decoded string to `path.basename()`.
+## 2024-04-15 - [Safe URI Decoding]
+**Vulnerability:** Unhandled Malformed URI
+**Learning:** Node.js native `req.url` is not automatically decoded. Failing to safely decode with `try/catch` might cause `URI malformed` exceptions, leading to unhandled errors if not properly caught, and potentially exposing the application to crashes on malicious inputs like `%FF`.
+**Prevention:** Wrap `decodeURIComponent` in `try/catch` blocks and return `400 Bad Request` when handling file serving via raw `req.url`.
+
+## 2026-04-13 - [URL Encoding Bypass for Path Traversal]
+**Vulnerability:** The brainstorm server directly passed `req.url.slice(7)` to `path.basename()`. Because Node HTTP module does not automatically URI-decode `req.url`, a double-encoded URL or manually constructed request could bypass simple literal checks, leading to failed requests or misinterpretations of the file name. By failing to decode, valid files with spaces or encoded characters would fail to be served correctly, or worse, specific traversal structures might exploit subsequent resolution logic if combined with other systems.
+**Learning:** In Node.js native `http` servers, `req.url` is not automatically URL-decoded. To correctly serve files with encoded characters while preventing path traversal, safely decode the URI segment first.
+**Prevention:** Always use `try { decoded = decodeURIComponent(url) } catch(e) { return 400 }` on URI components to properly resolve the path prior to passing the string to functions like `path.basename()`.
