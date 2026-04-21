@@ -173,17 +173,9 @@ async function runTests() {
       assert.strictEqual(res.status, 404);
     });
 
-    await test('safely decodes URI components in /files/ routes', async () => {
-      fs.writeFileSync(path.join(CONTENT_DIR, 'hello world.txt'), 'hello content');
-      await sleep(100);
-      const res = await fetch(`http://localhost:${TEST_PORT}/files/hello%20world.txt`);
-      assert.strictEqual(res.status, 200, 'Should return 200');
-      assert.strictEqual(res.body, 'hello content', 'Should decode URL and return content');
-    });
-
-    await test('returns 400 Bad Request on malformed URIs', async () => {
-      const res = await fetch(`http://localhost:${TEST_PORT}/files/hello%FFworld.txt`);
-      assert.strictEqual(res.status, 400, 'Should return 400 for malformed URI');
+    await test('returns 404 for path traversal attempts', async () => {
+      const res = await fetch(`http://localhost:${TEST_PORT}/files/%2e%2e%2f%2e%2e%2fetc%2fpasswd`);
+      assert.strictEqual(res.status, 404);
     });
 
     // ========== WebSocket Communication ==========

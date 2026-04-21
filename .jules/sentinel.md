@@ -35,3 +35,8 @@
 **Vulnerability:** Unhandled Malformed URI
 **Learning:** Node.js native `req.url` is not automatically decoded. Failing to safely decode with `try/catch` might cause `URI malformed` exceptions, leading to unhandled errors if not properly caught, and potentially exposing the application to crashes on malicious inputs like `%FF`.
 **Prevention:** Wrap `decodeURIComponent` in `try/catch` blocks and return `400 Bad Request` when handling file serving via raw `req.url`.
+
+## 2026-04-13 - [URL Encoding Bypass for Path Traversal]
+**Vulnerability:** The brainstorm server directly passed `req.url.slice(7)` to `path.basename()`. Because Node HTTP module does not automatically URI-decode `req.url`, a double-encoded URL or manually constructed request could bypass simple literal checks, leading to failed requests or misinterpretations of the file name. By failing to decode, valid files with spaces or encoded characters would fail to be served correctly, or worse, specific traversal structures might exploit subsequent resolution logic if combined with other systems.
+**Learning:** In Node.js native `http` servers, `req.url` is not automatically URL-decoded. To correctly serve files with encoded characters while preventing path traversal, safely decode the URI segment first.
+**Prevention:** Always use `try { decoded = decodeURIComponent(url) } catch(e) { return 400 }` on URI components to properly resolve the path prior to passing the string to functions like `path.basename()`.

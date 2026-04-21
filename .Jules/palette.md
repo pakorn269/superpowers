@@ -13,3 +13,14 @@
 ## 2026-03-30 - Baseline Accessibility in Generated HTML
 **Learning:** When providing HTML templates for LLM-generated UI (e.g., `frame-template.html`), ensure baseline keyboard accessibility by including a 'Skip to content' link (with `tabindex="-1"` on its target container for programmatic focus) and global `:focus-visible` styles for common interactive elements (`a`, `button`, `[tabindex="0"]`).
 **Action:** Automatically inject 'Skip to content' and focus-visible utilities so keyboard and screen-reader users have a consistent baseline, regardless of how perfectly the LLM structures the page content.
+
+## 2026-03-31 - Instructional Microcopy for Keyboard Users
+**Learning:** Generic instructional copy like "Click an option" assumes mouse or touch interaction, which can make keyboard-only users uncertain if interactive elements are accessible to them via standard keys (like Enter or Space).
+**Action:** When providing UI instructional copy for interactive elements, explicitly mention keyboard alternatives (e.g., "Click or press Enter") to improve discoverability and confidence for users navigating via keyboard.
+## 2026-04-12 - Reconnecting State Visibility
+**Learning:** Adding custom CSS (e.g., custom animations, custom `.reconnecting` classes) might violate strict design system constraints or explicit user rules. We can often achieve the same UX intent (communicating reconnecting state) by applying existing styling classes (e.g., `.connecting`) but updating the text content.
+**Action:** When asked to stay within existing design constraints, prioritize reusing existing classes to achieve the desired visual state while using text content (and `aria-live` attributes) to provide explicitly clear statuses.
+
+## 2026-04-11 - Accessible Connection Recovery States
+**Learning:** When a persistent background WebSocket connection drops after being successfully established, simply reverting to a generic "Connecting..." state fails to provide accurate context to users and screen readers, leading to confusion about whether the system is starting up or recovering from a failure.
+**Action:** Track whether the connection has previously succeeded and, upon disconnection, explicitly transition the UI to a "Reconnecting..." state. Combine this with pulsing visual indicators and `aria-live` announcements to provide accurate status updates during recovery.
