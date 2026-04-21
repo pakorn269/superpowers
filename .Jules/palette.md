@@ -13,6 +13,9 @@
 ## 2026-03-30 - Baseline Accessibility in Generated HTML
 **Learning:** When providing HTML templates for LLM-generated UI (e.g., `frame-template.html`), ensure baseline keyboard accessibility by including a 'Skip to content' link (with `tabindex="-1"` on its target container for programmatic focus) and global `:focus-visible` styles for common interactive elements (`a`, `button`, `[tabindex="0"]`).
 **Action:** Automatically inject 'Skip to content' and focus-visible utilities so keyboard and screen-reader users have a consistent baseline, regardless of how perfectly the LLM structures the page content.
+## 2024-05-24 - Keyboard Accessibility Instructions
+**Learning:** Providing UI instructional copy for interactive elements without explicitly mentioning keyboard alternatives limits discoverability for keyboard users.
+**Action:** Update directional text (e.g., "Click an option") to include keyboard cues (e.g., "Click or press Enter") to improve accessibility.
 
 ## 2026-03-31 - Explicit Keyboard Interaction Hints & State Clarity
 **Learning:** Even when keyboard functionality is technically supported (e.g., using `Enter` or `Space` to select), users who rely on keyboard navigation may not realize it without an explicit hint. Furthermore, ambiguous connection states ("Connecting..." instead of "Reconnecting...") confuse users when a connection is dropped and retried.
