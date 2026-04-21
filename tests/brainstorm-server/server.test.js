@@ -173,6 +173,11 @@ async function runTests() {
       assert.strictEqual(res.status, 404);
     });
 
+    await test('returns 404 for path traversal attempts', async () => {
+      const res = await fetch(`http://localhost:${TEST_PORT}/files/%2e%2e%2f%2e%2e%2fetc%2fpasswd`);
+      assert.strictEqual(res.status, 404);
+    });
+
     // ========== WebSocket Communication ==========
     console.log('\n--- WebSocket Communication ---');
 
