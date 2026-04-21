@@ -1,0 +1,42 @@
+## What problem are you trying to solve?
+The `/files/` endpoint in `skills/brainstorming/scripts/server.cjs` extracts the requested file name directly from `req.url` without decoding it. When a request is made for a file with encoded characters (e.g., spaces represented as `%20`), the server looks up the literal encoded string instead of the decoded name. This fails to serve the intended file and could potentially lead to unexpected path lookup behavior. Since `req.url` in Node.js native `http` is not automatically URL-decoded, it must be handled explicitly. Additionally, calling `decodeURIComponent` on malformed URIs (e.g. `%FF`) can throw an exception, crashing the server.
+
+## What does this PR change?
+This PR modifies the `/files/` endpoint to safely decode the URI component of the requested file name before joining it with `CONTENT_DIR`. It wraps the decoding step in a `try/catch` block to handle malformed URIs safely, returning a `400 Bad Request` instead of crashing the server.
+
+## Is this change appropriate for the core library?
+Yes, this is a bug fix for the core brainstorming skill server, ensuring files with encoded characters are served correctly and preventing a potential Denial of Service (DoS) from unhandled URI exceptions.
+
+## What alternatives did you consider?
+Using an external routing library (e.g., Express) was considered, but it would add unnecessary dependencies for a single endpoint. Explicitly decoding the URI with native Node.js functionality is the most lightweight and correct approach.
+
+## Does this PR contain multiple unrelated changes?
+No, this PR only fixes the URL decoding issue.
+
+## Existing PRs
+- [x] I have reviewed all open AND closed PRs for duplicates or prior art
+- Related PRs: none found
+
+## Environment tested
+
+| Harness (e.g. Claude Code, Cursor) | Harness version | Model | Model version/ID |
+|-------------------------------------|-----------------|-------|------------------|
+| Claude Code                         | N/A             | Claude 3.5 Sonnet | N/A              |
+
+## Evaluation
+- What was the initial prompt you (or your human partner) used to start
+  the session that led to this change? "Please fix one small security issue or add a security enhancement."
+- How many eval sessions did you run AFTER making the change? 1 locally
+- How did outcomes change compared to before the change? The server now gracefully returns a `400 Bad Request` for malformed URIs (e.g. `%FF`) instead of throwing a `URIError` and crashing.
+
+## Rigor
+
+- [ ] If this is a skills change: I used `superpowers:writing-skills` and
+      completed adversarial pressure testing (paste results below)
+- [x] This change was tested adversarially, not just on the happy path
+- [x] I did not modify carefully-tuned content (Red Flags table,
+      rationalizations, "human partner" language) without extensive evals
+      showing the change is an improvement
+
+## Human review
+- [x] A human has reviewed the COMPLETE proposed diff before submission
