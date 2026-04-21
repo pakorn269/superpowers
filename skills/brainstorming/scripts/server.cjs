@@ -140,8 +140,8 @@ function wrapInFrame(content) {
   return frameTemplate;
 }
 
-// Optimize: Cache the newest screen path to avoid `readdir` and `stat` on every HTTP request
-let cachedNewestScreen = null;
+// Optimize: Cache the constructed HTML response to avoid per-request filesystem I/O and string parsing
+let cachedHtmlResponse = WAITING_PAGE + helperInjection; // Initial fallback state
 
 let cachedHtml = WAITING_PAGE + helperInjection;
 
