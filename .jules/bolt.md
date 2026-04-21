@@ -32,6 +32,9 @@
 ## 2026-04-09 - Avoid string replace on multi-megabyte HTML screens
 **Learning:** Using `String.prototype.replace()` on multi-megabyte HTML strings (e.g., when injecting helpers before `</body>`) forces the regex engine or string scanner to traverse the entire string from the beginning, blocking the event loop for a significant amount of time (~27ms for 5MB).
 **Action:** Use `String.prototype.lastIndexOf()` combined with string `slice()` when inserting content near the end of massive strings, which operates almost instantly (~0.03ms).
+## 2026-04-16 - Eliminate filesystem I/O and repetitive string manipulation in frequent route handlers
+**Learning:** In Node.js server scripts, avoid performing filesystem I/O (e.g., `readFile`) or repetitive string manipulation inside frequently accessed route handlers (e.g., `GET /`). This introduces severe bottlenecks and overhead per-request.
+**Action:** Instead, cache the fully constructed response globally and update it on startup and via `fs.watch` callbacks to eliminate the read and allocation overhead on every request.
 ## 2026-04-14 - Await inside handleRequest
 **Learning:** Refactoring a synchronous function to `async` without properly updating its call sites introduces bugs. For example, the `await` was added in `handleRequest` without making the function async, which broke parsing. Once fixed, the server operates correctly.
 **Action:** When making route handlers async, thoroughly verify and update all internal logic to handle `await` results to prevent syntax or runtime regressions.

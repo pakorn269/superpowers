@@ -1,3 +1,24 @@
+## What this PR does / why we need it:
+**💡 What:** Implemented global caching of the fully constructed fallback and default HTML response in `server.cjs`. The server now calculates the injected response with the target helpers on startup or file update via `fs.watch`, rather than performing the string generation and filesystem I/O inside the `GET /` handler itself.
+
+**🎯 Why:** The `GET /` handler is the primary route accessed heavily by clients. Executing `fs.promises.readFile` and performing large multi-megabyte HTML string combinations and slices on every individual HTTP request creates a significant CPU and I/O bottleneck under load, causing massive event-loop blocking overhead per request.
+
+**📊 Impact:** Eliminates the filesystem read overhead and massive memory allocation entirely for all `GET /` requests, dropping the handler latency significantly and unblocking the event loop for faster concurrent responses.
+
+**🔬 Measurement:** Verified by passing the entire `brainstorm-server` HTTP handling test suite to ensure the cache still serves exactly the same content, handles initialization windows gracefully, and maintains stability.
+
+## Which issue(s) this PR fixes:
+Fixes # (issue)
+N/A
+
+## Special notes for your reviewer:
+N/A
+
+## Checklist:
+- [x] I have read the `CONTRIBUTING` document.
+- [x] My code follows the code style of this project.
+- [x] I have added tests to cover my changes.
+- [x] All new and existing tests passed.
 ## What problem are you trying to solve?
 The `/files/` endpoint in `skills/brainstorming/scripts/server.cjs` extracts the requested file name directly from `req.url` without decoding it. When a request is made for a file with encoded characters (e.g., spaces represented as `%20`), the server looks up the literal encoded string instead of the decoded name. This fails to serve the intended file and could potentially lead to unexpected path lookup behavior. Since `req.url` in Node.js native `http` is not automatically URL-decoded, it must be handled explicitly. Additionally, calling `decodeURIComponent` on malformed URIs (e.g. `%FF`) can throw an exception, crashing the server.
 
