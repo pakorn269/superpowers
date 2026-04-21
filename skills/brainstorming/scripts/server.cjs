@@ -226,7 +226,16 @@ async function handleRequest(req, res) {
       res.end(cachedHtml);
     } else if (req.method === 'GET' && req.url.startsWith('/files/')) {
       const fileName = req.url.slice(7);
-      const filePath = path.join(CONTENT_DIR, path.basename(fileName));
+      // Decode URI component to properly resolve basename and prevent path traversal
+      let decodedFileName;
+      try {
+        decodedFileName = decodeURIComponent(fileName);
+      } catch (e) {
+        res.writeHead(400);
+        res.end('Bad Request');
+        return;
+      }
+      const filePath = path.join(CONTENT_DIR, path.basename(decodedFileName));
 
       try {
         await fs.promises.access(filePath, fs.constants.R_OK);
