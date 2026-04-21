@@ -16,17 +16,24 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // ⚡ Bolt: Use indexOf and slice instead of RegExp for extracting frontmatter.
 // Expected impact: Reduces regex engine overhead and prevents allocating large multi-megabyte string matches, improving extraction speed from ~8ms to ~0.05ms for large files.
 const extractAndStripFrontmatter = (content) => {
-  if (!content.startsWith('---\n')) {
-    return { frontmatter: {}, content };
+  // ⚡ Bolt: Using indexOf and slice instead of full string regex matching
+  // A regex like /^---\n([\s\S]*?)\n---\n([\s\S]*)$/ requires capturing the entire body,
+  // causing massive memory allocations and blocking the event loop on multi-megabyte strings.
+  let frontmatterStr = '';
+  let body = content;
+  let hasFrontmatter = false;
+
+  if (content.startsWith('---\n')) {
+    const endIdx = content.indexOf('\n---\n', 4);
+    if (endIdx !== -1) {
+      frontmatterStr = content.slice(4, endIdx);
+      body = content.slice(endIdx + 5);
+      hasFrontmatter = true;
+    }
   }
 
-  const endIdx = content.indexOf('\n---\n', 4);
-  if (endIdx === -1) {
-    return { frontmatter: {}, content };
-  }
+  if (!hasFrontmatter) return { frontmatter: {}, content };
 
-  const frontmatterStr = content.slice(4, endIdx);
-  const body = content.slice(endIdx + 5);
   const frontmatter = {};
 
   for (const line of frontmatterStr.split('\n')) {
