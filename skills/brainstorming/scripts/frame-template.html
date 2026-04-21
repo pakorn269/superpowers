@@ -99,8 +99,10 @@
     .header h1 { font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); }
     .header .status { font-size: 0.7rem; color: var(--success); display: flex; align-items: center; gap: 0.4rem; transition: color 0.3s ease; }
     .header .status::before { content: ''; width: 6px; height: 6px; background: var(--success); border-radius: 50%; transition: background-color 0.3s ease; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
     .header .status.connecting { color: var(--warning); }
-    .header .status.connecting::before { background: var(--warning); }
+    .header .status.connecting::before { background: var(--warning); animation: pulse 1.5s infinite; }
     .header .status.disconnected { color: var(--text-tertiary); }
     .header .status.disconnected::before { background: var(--error); }
 

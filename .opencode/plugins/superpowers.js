@@ -14,11 +14,24 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Simple frontmatter extraction (avoid dependency on skills-core for bootstrap)
 const extractAndStripFrontmatter = (content) => {
-  const match = content.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-  if (!match) return { frontmatter: {}, content };
+  // ⚡ Bolt: Using indexOf and slice instead of full string regex matching
+  // A regex like /^---\n([\s\S]*?)\n---\n([\s\S]*)$/ requires capturing the entire body,
+  // causing massive memory allocations and blocking the event loop on multi-megabyte strings.
+  let frontmatterStr = '';
+  let body = content;
+  let hasFrontmatter = false;
 
-  const frontmatterStr = match[1];
-  const body = match[2];
+  if (content.startsWith('---\n')) {
+    const endIdx = content.indexOf('\n---\n', 4);
+    if (endIdx !== -1) {
+      frontmatterStr = content.slice(4, endIdx);
+      body = content.slice(endIdx + 5);
+      hasFrontmatter = true;
+    }
+  }
+
+  if (!hasFrontmatter) return { frontmatter: {}, content };
+
   const frontmatter = {};
 
   for (const line of frontmatterStr.split('\n')) {
